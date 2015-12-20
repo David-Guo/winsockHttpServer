@@ -151,12 +151,15 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 				getline(ss, requestLine, '\n');
 				stringstream ssRqstLine(requestLine);
 
-				if (requestLine.find(".cgi") != string::npos) 
+				if (requestLine.find(".cgi") == string::npos) 
 				{
 					delete[] requestBuff;
 					EditPrintf(hwndEdit, TEXT("not request a cgi doc"));
 					continue;
 				}
+				// 请求 cgi 文档
+				globalClientHandler.addNewClient(*it);
+				EditPrintf(hwndEdit, TEXT("adding new client: %d\r\n"),*it);
 
 				getline(ssRqstLine, offset, '/');
 				getline(ssRqstLine, offset, '?');
@@ -238,7 +241,7 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 							singleClie->init(*it);
 							Client *rasClient;
 							rasClient = singleClie->getANewJob();
-							rasClient->init(serverIP, serverPort, serverFile, singleClie->currentUserNum);
+							rasClient->init(serverIP, serverPort, serverFile, singleClie->currentUserNum, m_socket);
 							EditPrintf(hwndEdit, TEXT("=== successful init a client ===\r\n"));
 						}
 
@@ -252,8 +255,8 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 					singleClient *singleClie;
 					singleClie = globalClientHandler.findClient(*it);
 					// 生成 html 标签
-					string htmlpage;
-					htmlpage = string("<html>")
+					string htmlpage = string("<!DOCTYPE html>");;
+					htmlpage += string("<html>")
 						+ string("<head>")
 						+ string("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=big5\" />")
 						+ string("<title>Network Programming Homework 3</title>")
@@ -267,7 +270,7 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 						rasClient = singleClie->getAnExisJob(i);
 						if(rasClient->Port == "") continue;
 						else 
-							htmlpage = string("<td valign=\"top\" id=\"m") + string(to_string((unsigned long long)i)) + string("\"></td>");
+							htmlpage += string("<td valign=\"top\" id=\"m") + string(to_string((unsigned long long)i)) + string("\"></td>");
 						string webpage2;
 						webpage2 += string("</tr></table>\n");
 						// 向浏览器发送 html css 标签
@@ -314,13 +317,15 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 						rasClient->sendToServ();
 					Sleep(1000);
 					// ????
+					if(rasClient->isSend && rasClient->isExit) continue;
+
 					if (rasClient->isExit) {
 						Sleep(3000);
 						// 从 ras 读取最后一次离开信息，连同 exit 指令一起发送给浏览器
 						rasClient->reciveFromServ();
 						htmlpage = rasClient->returnRsltHtml() + string("\n");
 						send(singleClie->serverSocketFD, htmlpage.c_str(), htmlpage.size(), 0);
-						continue;
+						//continue;
 					}
 					else {
 						// 向浏览器发送文件指令

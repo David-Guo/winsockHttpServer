@@ -17,9 +17,8 @@ public:
 	string IP;
 	string Port;
 	string inputFile;
-	string batFile;
 	int taskId;
-	int sockfd;
+	SOCKET sockfd;
 	string resultHtml;
 	streampos m_lastFilePosition;
 	bool isSend;
@@ -45,12 +44,13 @@ public:
 		resultHtml += "<br>\";</script>\n";
 	}
 
-	void Client::init(string ip, string port, string file, int id) {
+	void Client::init(string ip, string port, string file, int id, SOCKET sock) {
 		IP = ip;
 		Port = port;
 		resultHtml = "";
 		taskId = id;
 		inputFile = file;
+		sockfd = sock;
 		m_lastFilePosition = 0;
 		isSend = FALSE;
 		isExit = FALSE;
@@ -91,12 +91,17 @@ public:
 			}
 
 		}
+		else {
+			AllocConsole();
+			freopen("CONOUT$", "w", stderr);
+			cerr << "recvFrom server error for taskID = " << taskId << endl;
+		}
 	}
 
 	void Client::sendToServ() {
 		string cmd = "";
 
-		ifstream batchFile(batFile.c_str());
+		ifstream batchFile(inputFile.c_str());
 
 		batchFile.seekg(m_lastFilePosition);
 		if (getline(batchFile, cmd)) {
@@ -125,7 +130,7 @@ public:
 		else {
 			AllocConsole();
 			freopen("CONOUT$", "w", stderr);
-			cerr << "No such batfile: " << batFile << endl;
+			cerr << "No such batfile: " << inputFile << endl;
 		}
 	}
 };
