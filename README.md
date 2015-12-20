@@ -24,6 +24,20 @@ nonblocking 是通过 WASAsyncSelect 来完成。
 
 ## 测试
 
-浏览器输入 `127.0.0.1:port`，窗口出现如下效果， prot define 在文件头部。 
+* 在远程服务器上提前开启 `ras` 服务等待接受连接，如下：
+
+![](./picture/2.png)
+
+* 浏览器输入 `127.0.0.1:port`，窗口出现如下效果， prot define 在文件头部。 
 
 ![](./picture/1.png)
+
+* 完整测试为在浏览器输入：`http://127.0.0.1:7799/hello.cgi?h1=nplinux4.cs.nctu.edu.tw&p1=12344&f1=t1.txt&h2=nplinux4.cs.nctu.edu.tw&p2=12344&f2=t3.txt`
+
+其中 `h1=nplinux4.cs.nctu.edu.tw` `h2=nplinux4.cs.nctu.edu.tw` 为 `ras` 所在 IP 地址，`p1` `p2` 分别为对应的端口号，`f1` `f2` 则为批处理输入文件。
+
+效果如下：
+
+![](./picture/3.png)
+
+

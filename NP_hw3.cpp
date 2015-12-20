@@ -114,7 +114,7 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SOCKET_NOTIFY:
-		switch( WSAGETSELECTEVENT(lParam) )
+		switch( WSAGETSELECTEVENT(lParam))
 		{
 		case FD_ACCEPT:
 			ssock = accept(msock, NULL, NULL);
@@ -171,6 +171,26 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 				//freopen("CONOUT$", "w", stderr);
 				//cerr << "requestDoc: " << requestDoc << endl;
 				//cerr << "queryString: " << queryString << endl;
+
+				// 生成响应头
+				singleClient *singleClie;
+				singleClie = globalClientHandler.findClient(*it);
+				string response = string("HTTP/1.1 200 OK\r\n");
+				response += string("response head\r\n");
+				response += string("\r\n");
+				send(singleClie->serverSocketFD, response.c_str(), response.size(), 0);
+
+				// 生成 html 表格标签
+				string htmltable = string("<html>")
+					+ string("<head>")
+					+ string("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=big5\" />")
+					+ string("<title>Network Programming Homework 3</title>")
+					+ string("</head>")
+					+ string("<body bgcolor=#336699>")
+					+ string("<font face=\"Courier New\" size=2 color=#FFFF99>")
+					+ string("<table width=\"800\" border=\"1\">")
+					+ string("<tr>");
+				send(singleClie->serverSocketFD, htmltable.c_str(), htmltable.size(), 0);
 
 				// CGI 部分，解析环境变量 queryString
 				vector<string> vDecodeEnv;
@@ -245,57 +265,41 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 							rasClient->init(serverIP, serverPort, serverFile, singleClie->currentUserNum - 1, m_socket);
 							EditPrintf(hwndEdit, TEXT("=== successful init a client ===\r\n"));
 						}
-
-					} // 结束对 vDecodeEnv.size() 的迭代，表示一个请求初始化结束
-
-					if (isInvalid == true) { 
-						// 无效的请求
-						delete[] requestBuff;
-						continue;
 					}
-					singleClient *singleClie;
-					singleClie = globalClientHandler.findClient(*it);
-					// 生成响应头
-					string response = string("HTTP/1.1 200 OK\r\n");
-					response += string("response head\r\n");
-					response += string("\r\n");
-					send(singleClie->serverSocketFD, response.c_str(), response.size(), 0);
-					// 生成 html 标签
-					string htmlpage = string("<!DOCTYPE html>");;
-					htmlpage += string("<html>")
-						+ string("<head>")
-						+ string("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=big5\" />")
-						+ string("<title>Network Programming Homework 3</title>")
-						+ string("</head>")
-						+ string("<body bgcolor=#336699>")
-						+ string("<font face=\"Courier New\" size=2 color=#FFFF99>")
-						+ string("<table width=\"800\" border=\"1\">")
-						+ string("<tr>");
-					// html 表格标签
-					for(int i = 0; i < singleClie->getUserNum(); i++) {
-						Client *rasClient;
-						rasClient = singleClie->getAnExisJob(i);
-						if(rasClient->IP == "") continue;
-						else htmlpage += string("<td>") + rasClient->IP + string("</td>");
-					}
-					htmlpage += string("</tr></tr>");
-					// 标签 id 属性，使用 javascript 填充内容
-					for(int i = 0; i < singleClie->getUserNum(); i++) {
-						Client *rasClient;
-						rasClient = singleClie->getAnExisJob(i);
-						if(rasClient->Port == "") continue;
-						else 
-							htmlpage += string("<td valign=\"top\" id=\"m") + string(to_string((unsigned long long)i)) + string("\"></td>");
-					}
-					string webpage2;
-					webpage2 += string("</tr></table>\n");
-					// 向浏览器发送 html css 标签
-					send(singleClie->serverSocketFD, htmlpage.c_str(), htmlpage.size(),0);
-					send(singleClie->serverSocketFD, webpage2.c_str(), webpage2.size(),0);
 
+				} // 结束对 vDecodeEnv.size() 的迭代，表示一个请求初始化结束
+
+				if (isInvalid == true) { 
+					// 无效的请求
 					delete[] requestBuff;
-				}	// 结束对 Socks.size() 的迭代
-			}
+					continue;
+				}
+				string htmlpage;
+				// html 表格标签
+				for(int i = 0; i < singleClie->getUserNum(); i++) {
+					Client *rasClient;
+					rasClient = singleClie->getAnExisJob(i);
+					if(rasClient->IP == "") continue;
+					else 
+						htmlpage += string("<td>") + rasClient->IP + string("</td>");
+				}
+				htmlpage += string("</tr></tr>");
+				// 标签 id 属性，使用 javascript 填充内容
+				for(int i = 0; i < singleClie->getUserNum(); i++) {
+					Client *rasClient;
+					rasClient = singleClie->getAnExisJob(i);
+					if(rasClient->Port == "") continue;
+					else 
+						htmlpage += string("<td valign=\"top\" id=\"m") + string(to_string((unsigned long long)i)) + string("\"></td>");
+				}
+				string webpage2;
+				webpage2 += string("</tr></table>\n");
+				// 向浏览器发送 html css 标签
+				send(singleClie->serverSocketFD, htmlpage.c_str(), htmlpage.size(),0);
+				send(singleClie->serverSocketFD, webpage2.c_str(), webpage2.size(),0);
+
+				delete[] requestBuff;
+			} 	// 结束对 Socks.size() 的迭代
 
 			break;
 		case FD_WRITE:
