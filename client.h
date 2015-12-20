@@ -123,9 +123,9 @@ public:
 			// 注意在，linux 环境中 send 要换成 write
 			send(sockfd, cmd.c_str(), cmd.size(), 0);
 
-			if (cmd.find("exit") != string::npos) isExit = FALSE;
+			if (cmd.find("exit") != string::npos) isExit = true;
 			else 
-				isExit = true;
+				isExit = false;
 		}
 		else {
 			AllocConsole();

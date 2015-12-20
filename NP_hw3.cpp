@@ -241,7 +241,8 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 							singleClie->init(*it);
 							Client *rasClient;
 							rasClient = singleClie->getANewJob();
-							rasClient->init(serverIP, serverPort, serverFile, singleClie->currentUserNum, m_socket);
+							// UserNum 减去 1 之后才能与 HTML 表格标签的 id 属性挂钩
+							rasClient->init(serverIP, serverPort, serverFile, singleClie->currentUserNum - 1, m_socket);
 							EditPrintf(hwndEdit, TEXT("=== successful init a client ===\r\n"));
 						}
 
@@ -254,6 +255,11 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 					}
 					singleClient *singleClie;
 					singleClie = globalClientHandler.findClient(*it);
+					// 生成响应头
+					string response = string("HTTP/1.1 200 OK\r\n");
+					response += string("response head\r\n");
+					response += string("\r\n");
+					send(singleClie->serverSocketFD, response.c_str(), response.size(), 0);
 					// 生成 html 标签
 					string htmlpage = string("<!DOCTYPE html>");;
 					htmlpage += string("<html>")
@@ -265,18 +271,27 @@ BOOL CALLBACK MainDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 						+ string("<font face=\"Courier New\" size=2 color=#FFFF99>")
 						+ string("<table width=\"800\" border=\"1\">")
 						+ string("<tr>");
+					// html 表格标签
+					for(int i = 0; i < singleClie->getUserNum(); i++) {
+						Client *rasClient;
+						rasClient = singleClie->getAnExisJob(i);
+						if(rasClient->IP == "") continue;
+						else htmlpage += string("<td>") + rasClient->IP + string("</td>");
+					}
+					htmlpage += string("</tr></tr>");
+					// 标签 id 属性，使用 javascript 填充内容
 					for(int i = 0; i < singleClie->getUserNum(); i++) {
 						Client *rasClient;
 						rasClient = singleClie->getAnExisJob(i);
 						if(rasClient->Port == "") continue;
 						else 
 							htmlpage += string("<td valign=\"top\" id=\"m") + string(to_string((unsigned long long)i)) + string("\"></td>");
-						string webpage2;
-						webpage2 += string("</tr></table>\n");
-						// 向浏览器发送 html css 标签
-						send(singleClie->serverSocketFD, htmlpage.c_str(), htmlpage.size(),0);
-						send(singleClie->serverSocketFD, webpage2.c_str(), webpage2.size(),0);
 					}
+					string webpage2;
+					webpage2 += string("</tr></table>\n");
+					// 向浏览器发送 html css 标签
+					send(singleClie->serverSocketFD, htmlpage.c_str(), htmlpage.size(),0);
+					send(singleClie->serverSocketFD, webpage2.c_str(), webpage2.size(),0);
 
 					delete[] requestBuff;
 				}	// 结束对 Socks.size() 的迭代
